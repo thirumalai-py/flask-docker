@@ -12,6 +12,11 @@ app = Flask(__name__)
 def home():
     return "Hello, Flask!"
 
+# Home Page
+@app.route("/about")
+def about():
+    return "Hello, About us!"
+
 # # Register the product blueprint
 # app.register_blueprint(product_bp)
 
