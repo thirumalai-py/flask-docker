@@ -6,7 +6,7 @@ pipeline {
         GIT_BRANCH = "main"
         EC2_SSH = "thiru-ec2"
         EC2_USER = "ubuntu"
-        EC2_HOST = "13.203.204.65"
+        EC2_HOST = "15.206.205.142"
         CONTAINER_NAME = "thiru-flask"
         DOCKER_IMAGE = "thirumalaipy/flask"
         DOCKER_CREDENTIALS_ID = "thiru-docker-cred"
