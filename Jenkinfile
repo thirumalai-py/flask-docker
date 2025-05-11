@@ -39,13 +39,34 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') { 
-            steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+        stage('Parallel build testing'){
+            parallel{
+                stage('Hello World'){
+                    steps{
+                        sh '''
+                            echo "hello world"
+                        '''
+                    }
+                }
+        
+                stage('Build Docker Image') { 
+                    steps {
+                        script {
+                            docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+                        }
+                    }
                 }
             }
+            
         }
+
+        //stage('Build Docker Image') { 
+        //    steps {
+        //        script {
+        //            docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+        //        }
+        //    }
+        //}
 
         stage('Check to EC2') {
             steps {
