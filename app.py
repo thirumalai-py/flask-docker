@@ -12,7 +12,7 @@ app = Flask(__name__)
 def home():
     return "Hello, Flask!"
 
-# Home Page
+# About us Page
 @app.route("/about")
 def about():
     return "Hello, About us!"
