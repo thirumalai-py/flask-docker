@@ -1,5 +1,10 @@
+flask
+flask-pymongo
 pymongo
-Flask-PyMongo
+flask-bcrypt
+flask-jwt-extended
 python-dotenv
-dnspython
+certifi
+flask-swagger-ui
 pytest
+requests
