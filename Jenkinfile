@@ -116,7 +116,7 @@ pipeline {
                             docker rm ${CONTAINER_NAME} || true
 
                             echo "Running New Container..."
-                            docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            docker run -d --name ${CONTAINER_NAME} -p 6000:6000 ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
                             echo "Deployment Complete!"
                         '
