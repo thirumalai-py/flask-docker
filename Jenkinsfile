@@ -11,6 +11,8 @@ pipeline {
         DOCKER_IMAGE = "thirumalaipy/flask"
         DOCKER_CREDENTIALS_ID = "thiru-docker-cred"
         DOCKER_REGISTRY = "https://index.docker.io/v1"
+        PYTHON_VERSION = '3.8'
+        VENV_NAME = 'venv'
     }
 
     stages {
@@ -28,25 +30,48 @@ pipeline {
             }
         }
 
-        stage('Review Code') { 
+        stage('Setup Python') {
             steps {
-                sh '''
-                    echo "Reviewing Code..."
-                    # Add your code review commands here
-                    ls
-                    pwd
-                '''
+                script {
+                    sh '''
+                        python3 --version
+                        which python3
+                        python3 -m venv ${VENV_NAME}
+                        . ${VENV_NAME}/bin/activate
+                        python --version
+                    '''
+                }
             }
         }
 
-        stage('Run Python')   {
+        stage('Install Dependencies') {
             steps {
-                sh '''
-                    echo "Running Python..."
-                    pytest test_app.py --maxfail=1 --disable-warnings
-                '''
+                script {
+                    sh '''
+                        . ${VENV_NAME}/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                    '''
+                }
             }
-        } 
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    sh '''
+                        . ${VENV_NAME}/bin/activate
+                        pip install pytest
+                        pytest test_app.py --maxfail=1 --disable-warnings --junitxml=test-reports/test-results.xml
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit 'test-reports/*.xml'
+                }
+            }
+        }
     
         stage('Build Docker Image') { 
            steps {
@@ -56,19 +81,6 @@ pipeline {
            }
         }
 
-        stage('Check to EC2') {
-            steps {
-                sshagent(credentials: ['thiru-ec2']) {
-                    sh """
-                        echo "Checking to EC2..."
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                            pwd
-                        '
-                    """
-                }
-            }
-        }
-        
         stage('Test Docker Credentials') {
             steps {
                 script {
@@ -79,7 +91,7 @@ pipeline {
             }
         }
 
-        stage('push Docker Image'){
+        stage('Push Docker Image'){
             steps {
                 script {
                     docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
@@ -95,7 +107,6 @@ pipeline {
                     sh """
                         echo "Deploying to EC2..."
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                            
                             echo "Pulling Docker Image..."
                             docker pull ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
@@ -104,7 +115,7 @@ pipeline {
                             docker rm ${CONTAINER_NAME} || true
 
                             echo "Running New Container..."
-                            docker run -d --name ${CONTAINER_NAME} -p 6000:6000 ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
                             echo "Deployment Complete!"
                         '
@@ -112,8 +123,21 @@ pipeline {
                 }
             }
         }
-
-
     }
 
+    post {
+        failure {
+            echo 'Build or test failed. Sending notifications...'
+        }
+        success {
+            echo 'Build and deployment passed successfully!'
+        }
+        cleanup {
+            script {
+                sh '''
+                    rm -rf ${VENV_NAME}
+                '''
+            }
+        }
+    }
 }

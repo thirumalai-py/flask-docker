@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+    
+    environment {
+        PYTHON_VERSION = '3.8'
+        VENV_NAME = 'venv'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Setup Python') {
+            steps {
+                script {
+                    // Ensure Python is available
+                    sh '''
+                        python3 --version
+                        which python3
+                    '''
+                    
+                    // Create virtual environment
+                    sh '''
+                        python3 -m venv ${VENV_NAME}
+                        . ${VENV_NAME}/bin/activate
+                        python --version
+                    '''
+                }
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    sh '''
+                        . ${VENV_NAME}/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                    '''
+                }
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                script {
+                    sh '''
+                        . ${VENV_NAME}/bin/activate
+                        # Ensure pytest is installed
+                        pip install pytest
+                        # Run tests with verbose output and generate XML report
+                        pytest test_app.py --maxfail=1 --disable-warnings --junitxml=test-reports/test-results.xml
+                    '''
+                }
+            }
+            post {
+                always {
+                    // Publish test results
+                    junit 'test-reports/*.xml'
+                }
+            }
+        }
+    }
+    
+    post {
+        failure {
+            echo 'Build or test failed. Sending notifications...'
+            // Add notification steps if needed
+        }
+        success {
+            echo 'Build and tests passed successfully!'
+        }
+        cleanup {
+            script {
+                sh '''
+                    rm -rf ${VENV_NAME}
+                '''
+            }
+        }
+    }
+} 

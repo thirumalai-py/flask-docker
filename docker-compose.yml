@@ -14,8 +14,11 @@ services:
       - MONGO_INITDB_DATABASE=flask_db
     networks:
       - app-network
+
   web:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: web
     ports:
       - "8000:8000"
@@ -31,7 +34,9 @@ services:
       - app-network
 
   test:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: test
     environment:
       - RUN_TESTS=true

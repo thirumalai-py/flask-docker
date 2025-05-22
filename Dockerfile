@@ -7,11 +7,16 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install pytest for testing
-RUN pip install pytest
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# Install requirements
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Make port 8000 available to the world outside this container
 EXPOSE 8000
@@ -21,13 +26,15 @@ ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 
 # Create a script to run tests or the application
+RUN mkdir -p test-reports
+
 RUN echo '#!/bin/bash\n\
 if [ "$RUN_TESTS" = "true" ]; then\n\
-    pytest\n\
+    pytest test_app.py --maxfail=1 --disable-warnings --junitxml=test-reports/test-results.xml\n\
 else\n\
-    flask run\n\
+    flask run --host=0.0.0.0 --port=8000\n\
 fi' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
-# Run app.py when the container launches
+# Run the entrypoint script
 CMD ["/app/entrypoint.sh"]
 
