@@ -58,7 +58,7 @@ pipeline {
                         echo "Test stage failed: ${e.getMessage()}"
                         throw e
                     } finally {
-                        sh 'docker-compose down -v || true'
+                        sh 'docker-compose down -v || ˆtrue'
                     }
                 }
             }
@@ -106,15 +106,43 @@ pipeline {
                     sh """
                         echo "Deploying to EC2..."
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                            echo "Pulling Docker Image..."
+                            # Ensure mongo_data volume exists, but don't recreate if it exists
+                            docker volume inspect mongo_data > /dev/null 2>&1 || docker volume create mongo_data
+
+                            # Check if MongoDB container exists
+                            MONGO_CONTAINER=$(docker ps -a -f name=mongo-db -q)
+
+                            # If MongoDB container doesn't exist, create it
+                            if [ -z "$MONGO_CONTAINER" ]; then
+                                echo "Creating MongoDB container..."
+                                docker run -d --name mongo-db \
+                                    -p 27017:27017 \
+                                    -v mongo_data:/data/db \
+                                    -e MONGO_INITDB_DATABASE=flask_db \
+                                    mongo:latest
+                            else
+                                # If container exists but is not running, start it
+                                if [ -z "$(docker ps -f name=mongo-db -q)" ]; then
+                                    echo "Starting existing MongoDB container..."
+                                    docker start mongo-db
+                                fi
+                            fi
+
+                            echo "Pulling Flask Application Image..."
                             docker pull ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
-                            echo "Stopping and Removing Existing Container..."
+                            echo "Stopping and Removing Existing Flask Container..."
                             docker stop ${CONTAINER_NAME} || true
                             docker rm ${CONTAINER_NAME} || true
 
-                            echo "Running New Container..."
-                            docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            echo "Running New Flask Container..."
+                            docker run -d --name ${CONTAINER_NAME} \
+                                -p 8000:8000 \
+                                --network host \
+                                -e MONGO_URI=mongodb://localhost:27017/flask_db \
+                                -e JWT_SECRET_KEY=thirumalaipy \
+                                -e MONGO_DB_NAME=flask_db \
+                                ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
                             echo "Deployment Complete!"
                         '
