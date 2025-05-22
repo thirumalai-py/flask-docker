@@ -6,11 +6,12 @@ pipeline {
         GIT_BRANCH = "main"
         EC2_SSH = "thiru-ec2"
         EC2_USER = "ubuntu"
-        EC2_HOST = "13.233.192.172"
+        EC2_HOST = "65.0.179.73"
         CONTAINER_NAME = "thiru-flask"
         DOCKER_IMAGE = "thirumalaipy/flask"
         DOCKER_CREDENTIALS_ID = "thiru-docker-cred"
         DOCKER_REGISTRY = "https://index.docker.io/v1"
+        DOCKER_NETWORK = "app-network"
     }
 
     stages {
@@ -31,11 +32,13 @@ pipeline {
                 script {
                     try {
                         sh '''
+                            echo "Removing existing MongoDB container if it exists..."
+                            docker rm -f mongo-db || true
+
                             echo "Starting MongoDB with seed data..."
                             docker-compose up -d mongo-db
 
                             echo "Waiting for MongoDB to be ready..."
-                            # Wait for MongoDB to be fully operational
                             max_attempts=30
                             attempt=0
                             while [ $attempt -lt $max_attempts ]; do
@@ -58,7 +61,7 @@ pipeline {
                         echo "Test stage failed: ${e.getMessage()}"
                         throw e
                     } finally {
-                        sh 'docker-compose down -v || ˆtrue'
+                        sh 'docker-compose down -v || true'
                     }
                 }
             }
@@ -105,46 +108,49 @@ pipeline {
                 sshagent(credentials: ['thiru-ec2']) {
                     sh """
                         echo "Deploying to EC2..."
+
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                            # Ensure mongo_data volume exists, but don't recreate if it exists
+                            echo "Checking if Docker network ${DOCKER_NETWORK} exists..."
+                            docker network inspect ${DOCKER_NETWORK} > /dev/null 2>&1 || docker network create ${DOCKER_NETWORK}
+
+                            echo "Checking if mongo_data volume exists..."
                             docker volume inspect mongo_data > /dev/null 2>&1 || docker volume create mongo_data
 
-                            # Check if MongoDB container exists
-                            MONGO_CONTAINER=$(docker ps -a -f name=mongo-db -q)
+                            echo "Checking if MongoDB container exists..."
+                            MONGO_CONTAINER=\$(docker ps -a -f name=mongo-db -q)
 
-                            # If MongoDB container doesn't exist, create it
-                            if [ -z "$MONGO_CONTAINER" ]; then
+                            if [ -z "\$MONGO_CONTAINER" ]; then
                                 echo "Creating MongoDB container..."
-                                docker run -d --name mongo-db \
+                                docker run -d --name mongo-db --network ${DOCKER_NETWORK} \
                                     -p 27017:27017 \
                                     -v mongo_data:/data/db \
                                     -e MONGO_INITDB_DATABASE=flask_db \
                                     mongo:latest
                             else
-                                # If container exists but is not running, start it
-                                if [ -z "$(docker ps -f name=mongo-db -q)" ]; then
+                                if [ -z "\$(docker ps -f name=mongo-db -q)" ]; then
                                     echo "Starting existing MongoDB container..."
                                     docker start mongo-db
                                 fi
+                                echo "Connecting MongoDB container to network if not already connected..."
+                                docker network connect ${DOCKER_NETWORK} mongo-db || true
                             fi
 
                             echo "Pulling Flask Application Image..."
                             docker pull ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
-                            echo "Stopping and Removing Existing Flask Container..."
+                            echo "Stopping existing Flask container if running..."
                             docker stop ${CONTAINER_NAME} || true
                             docker rm ${CONTAINER_NAME} || true
 
-                            echo "Running New Flask Container..."
-                            docker run -d --name ${CONTAINER_NAME} \
+                            echo "Starting new Flask container connected to network ${DOCKER_NETWORK}..."
+                            docker run -d --name ${CONTAINER_NAME} --network ${DOCKER_NETWORK} \
                                 -p 8000:8000 \
-                                --network host \
-                                -e MONGO_URI=mongodb://localhost:27017/flask_db \
+                                -e MONGO_URI=mongodb://mongo-db:27017/flask_db \
                                 -e JWT_SECRET_KEY=thirumalaipy \
                                 -e MONGO_DB_NAME=flask_db \
                                 ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
-                            echo "Deployment Complete!"
+                            echo "Deployment done."
                         '
                     """
                 }
