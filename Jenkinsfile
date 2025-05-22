@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    
+
     environment {
         GITREPO = "https://github.com/thirumalai-py/flask-docker"
         GIT_BRANCH = "main"
@@ -11,74 +11,73 @@ pipeline {
         DOCKER_IMAGE = "thirumalaipy/flask"
         DOCKER_CREDENTIALS_ID = "thiru-docker-cred"
         DOCKER_REGISTRY = "https://index.docker.io/v1"
-        PYTHON_VERSION = '3.8'
-        VENV_NAME = 'venv'
     }
 
     stages {
         stage('Get Build Number') { 
             steps {
-                sh '''
-                    echo "Build Number: ${BUILD_NUMBER}"
-                '''
+                echo "Build Number: ${BUILD_NUMBER}"
             }
         }
 
-        stage('Checkout Code') { 
+        stage('Checkout Code') {
             steps {
                 git branch: "${GIT_BRANCH}", url: "${GITREPO}"
-            }
-        }
-
-        stage('Setup Python') {
-            steps {
-                script {
-                    sh '''
-                        python3 --version
-                        which python3
-                        python3 -m venv ${VENV_NAME}
-                        . ${VENV_NAME}/bin/activate
-                        python --version
-                    '''
-                }
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                script {
-                    sh '''
-                        . ${VENV_NAME}/bin/activate
-                        pip install --upgrade pip
-                        pip install -r requirements.txt
-                    '''
-                }
             }
         }
 
         stage('Run Tests') {
             steps {
                 script {
-                    sh '''
-                        . ${VENV_NAME}/bin/activate
-                        pip install pytest
-                        pytest test_app.py --maxfail=1 --disable-warnings --junitxml=test-reports/test-results.xml
-                    '''
+                    try {
+                        sh '''
+                            echo "Starting MongoDB with seed data..."
+                            docker-compose up -d mongo-db
+
+                            echo "Waiting for MongoDB to be ready..."
+                            # Wait for MongoDB to be fully operational
+                            max_attempts=30
+                            attempt=0
+                            while [ $attempt -lt $max_attempts ]; do
+                                docker-compose exec -T mongo-db mongosh --eval "db.runCommand({ping:1})" && break
+                                echo "Waiting for MongoDB to be ready... (attempt $attempt)"
+                                sleep 2
+                                attempt=$((attempt+1))
+                            done
+
+                            if [ $attempt -eq $max_attempts ]; then
+                                echo "MongoDB did not become ready in time"
+                                exit 1
+                            fi
+
+                            echo "MongoDB is ready. Running tests..."
+                            mkdir -p test-reports
+                            docker-compose run --rm test pytest --maxfail=1 --disable-warnings --junitxml=test-reports/test-results.xml
+                        '''
+                    } catch (Exception e) {
+                        echo "Test stage failed: ${e.getMessage()}"
+                        throw e
+                    } finally {
+                        sh 'docker-compose down -v || true'
+                    }
                 }
             }
             post {
                 always {
                     junit 'test-reports/*.xml'
                 }
+                failure {
+                    echo "Tests failed. Check the test reports for details."
+                }
             }
         }
-    
-        stage('Build Docker Image') { 
-           steps {
-               script {
-                   docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
-               }
-           }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+                }
+            }
         }
 
         stage('Test Docker Credentials') {
@@ -91,7 +90,7 @@ pipeline {
             }
         }
 
-        stage('Push Docker Image'){
+        stage('Push Docker Image') {
             steps {
                 script {
                     docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
@@ -131,13 +130,6 @@ pipeline {
         }
         success {
             echo 'Build and deployment passed successfully!'
-        }
-        cleanup {
-            script {
-                sh '''
-                    rm -rf ${VENV_NAME}
-                '''
-            }
         }
     }
 }

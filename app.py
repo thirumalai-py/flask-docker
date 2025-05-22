@@ -139,15 +139,35 @@ def login():
 def get_profile():
     try:
         current_user_id = get_jwt_identity()
-        user = User.get_user_by_id(db, current_user_id)
+        
+        # Ensure current_user_id is converted to ObjectId if it's a string
+        if isinstance(current_user_id, str):
+            from bson import ObjectId
+            current_user_id = ObjectId(current_user_id)
+        
+        # Retrieve user with specific error handling
+        user = db.users.find_one({'_id': current_user_id})
         
         if not user:
+            # Specific error for user not found
+            logger.warning(f"Profile retrieval failed: User not found for ID {current_user_id}")
             return jsonify({"error": "User not found"}), 404
+        
+        # Remove sensitive information
+        user.pop('password_hash', None)
+        
+        # Convert ObjectId to string for JSON serialization
+        user['_id'] = str(user['_id'])
         
         return jsonify(user), 200
     
     except Exception as e:
-        return jsonify({"error": "Failed to retrieve profile"}), 500
+        # Log the full error for debugging
+        logger.error(f"Profile retrieval error: {str(e)}", exc_info=True)
+        return jsonify({
+            "error": "Failed to retrieve profile", 
+            "details": str(e)
+        }), 500
 
 # Edit User Profile
 @app.route('/profile', methods=['PUT'])
