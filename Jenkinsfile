@@ -158,12 +158,43 @@ pipeline {
         }
     }
 
-    post {
+     post {
         failure {
             echo 'Build or test failed. Sending notifications...'
         }
         success {
             echo 'Build and deployment passed successfully!'
+            
+            script {
+                sh '''
+                    echo "===== Deployment Success Summary ====="
+                    echo "Build Number: ${BUILD_NUMBER}"
+                    echo "Docker Image: ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    echo "Deployment Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+                    
+                    echo "\n----- Docker Images -----"
+                    docker images | grep "${DOCKER_IMAGE}"
+                    
+                    echo "\n----- Running Containers -----"
+                    docker ps
+                    
+                    echo "\n----- Disk Space -----"
+                    df -h
+                    
+                    echo "\n----- Docker System Info -----"
+                    docker system info
+                    
+                    echo "\n----- Cleanup Old Images -----"
+                    # List and sort images by creation time, keeping only the two most recent builds
+                    docker images --format "{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}" | \
+                    grep "${DOCKER_IMAGE}" | \
+                    sort -k3 -r | \
+                    awk 'NR>2 {print $2}' | \
+                    xargs -r docker rmi || true
+                    
+                    echo "===== Deployment Success Cleanup Complete ====="
+                '''
+            }
         }
     }
 }
