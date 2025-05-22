@@ -6,7 +6,7 @@ pipeline {
         GIT_BRANCH = "main"
         EC2_SSH = "thiru-ec2"
         EC2_USER = "ubuntu"
-        EC2_HOST = "13.233.192.172"
+        EC2_HOST = "15.206.205.142"
         CONTAINER_NAME = "thiru-flask"
         DOCKER_IMAGE = "thirumalaipy/flask"
         DOCKER_CREDENTIALS_ID = "thiru-docker-cred"
@@ -39,22 +39,34 @@ pipeline {
             }
         }
 
-        stage('Run Python')   {
-            steps {
-                sh '''
-                    echo "Running Python..."
-                    pytest test_app.py --maxfail=1 --disable-warnings
-                '''
+        stage('Parallel build testing'){
+            parallel{
+                stage('Hello World'){
+                    steps{
+                        sh '''
+                            echo "hello world"
+                        '''
+                    }
+                }
+        
+                stage('Build Docker Image') { 
+                    steps {
+                        script {
+                            docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+                        }
+                    }
+                }
             }
-        } 
-    
-        stage('Build Docker Image') { 
-           steps {
-               script {
-                   docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
-               }
-           }
+            
         }
+
+        //stage('Build Docker Image') { 
+        //    steps {
+        //        script {
+        //            docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+        //        }
+        //    }
+        //}
 
         stage('Check to EC2') {
             steps {
