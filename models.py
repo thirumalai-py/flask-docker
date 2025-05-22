@@ -86,8 +86,9 @@ class User:
             user = mongo_db.users.find_one({'_id': user_id})
             
             if user:
-                # Remove sensitive information
+                # Remove sensitive information and convert _id to string
                 user.pop('password_hash', None)
+                user['_id'] = str(user['_id'])
                 return user
             
             return None

@@ -177,6 +177,10 @@ def edit_profile():
         current_user_id = get_jwt_identity()
         data = request.get_json()
         
+        # Validate input
+        if not data or (not data.get('first_name') and not data.get('last_name')):
+            return jsonify({"error": "No profile data provided"}), 400
+        
         # Update user profile
         success = User.update_user(db, current_user_id, {
             'first_name': data.get('first_name'),
@@ -191,6 +195,7 @@ def edit_profile():
         return jsonify(updated_user), 200
     
     except Exception as e:
+        logger.error(f"Profile update error: {str(e)}", exc_info=True)
         return jsonify({"error": "Profile update failed"}), 500
 
 # Change Password
@@ -204,6 +209,10 @@ def change_password():
         # Validate input
         if not data.get('current_password') or not data.get('new_password'):
             return jsonify({"error": "Missing current or new password"}), 400
+        
+        # Validate new password length
+        if len(data['new_password']) < 6:
+            return jsonify({"error": "New password must be at least 6 characters long"}), 400
         
         # Change password
         success = User.change_password(
@@ -219,6 +228,7 @@ def change_password():
         return jsonify({"message": "Password changed successfully"}), 200
     
     except Exception as e:
+        logger.error(f"Password change error: {str(e)}", exc_info=True)
         return jsonify({"error": "Password change failed"}), 500
 
 # Logout (handled client-side by removing token)
