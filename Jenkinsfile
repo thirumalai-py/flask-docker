@@ -163,18 +163,50 @@ pipeline {
         failure {
             echo 'Build or test failed. Sending notifications...'
             emailext(
-                subject: "Flask Application Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """The Jenkins job '${env.JOB_NAME}' has failed. Check build logs at: ${env.BUILD_URL}""",
-                to: "${ALERT_EMAIL}"
-            )
+    subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+    body: """\
+<html>
+<body>
+<h3>Flask Application Build FAILED ❌</h3>
+<p><strong>Job:</strong> ${env.JOB_NAME}</p>
+<p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+<p><strong>Branch:</strong> ${env.GIT_BRANCH}</p>
+<p><strong>Git Repo:</strong> ${env.GITREPO}</p>
+<p><strong>Docker Image:</strong> ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}</p>
+<p><strong>EC2 Host:</strong> ${env.EC2_HOST}</p>
+<p><strong>Failure Time:</strong> ${new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone("Asia/Kolkata"))}</p>
+<p><a href="${env.BUILD_URL}">Click here to view full build logs</a></p>
+</body>
+</html>
+""",
+    mimeType: 'text/html',
+    to: "${ALERT_EMAIL}"
+)
+
         }
         success {
             echo 'Build and deployment passed successfully!'
             emailext(
-                subject: "Flask Application Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """The Jenkins job '${env.JOB_NAME}' has passed. Check build logs at: ${env.BUILD_URL}""",
-                to: "${ALERT_EMAIL}"
-            )
+    subject: "✅ Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+    body: """\
+<html>
+<body>
+<h3>Flask Application Build & Deployment SUCCEEDED ✅</h3>
+<p><strong>Job:</strong> ${env.JOB_NAME}</p>
+<p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+<p><strong>Branch:</strong> ${env.GIT_BRANCH}</p>
+<p><strong>Git Repo:</strong> ${env.GITREPO}</p>
+<p><strong>Docker Image:</strong> ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}</p>
+<p><strong>Deployed To:</strong> EC2 (${env.EC2_HOST})</p>
+<p><strong>Deployment Time:</strong> ${new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone("Asia/Kolkata"))}</p>
+<p><a href="${env.BUILD_URL}">Click here to view full build logs</a></p>
+</body>
+</html>
+""",
+    mimeType: 'text/html',
+    to: "${ALERT_EMAIL}"
+)
+
             script {
                 sh '''
                     echo "===== Deployment Success Summary ====="

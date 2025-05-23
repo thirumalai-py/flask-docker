@@ -118,3 +118,140 @@ pytest tests/test_profile.py
 ### Notes
 - Tests use a separate test database
 - Test data is automatically cleaned up after each test run
+
+## Jenkins CI/CD Pipeline Overview
+
+This project implements a comprehensive Continuous Integration and Continuous Deployment (CI/CD) pipeline using Jenkins, demonstrating a robust automated workflow for a Flask application.
+
+### Pipeline Stages
+
+#### 1. Get Build Number
+- Captures and logs the unique build number for tracking and identification
+
+![Get Build Number Stage](/outputs/1_get_build_no.png)
+
+This screenshot illustrates the first stage of the Jenkins pipeline, which captures and logs the unique build number. The build number serves as a critical identifier for tracking each specific build and deployment iteration.
+
+
+#### 2. Checkout Code
+- Pulls the latest code from the main branch of the GitHub repository
+
+![Checkout Code Stage](/outputs/2_checkout_code.png)
+
+This screenshot demonstrates the Checkout Code stage, where Jenkins pulls the latest code from the main branch of the GitHub repository. This ensures that the most recent version of the codebase is used for building, testing, and deployment.
+
+
+#### 3. Run Tests
+- Sets up a MongoDB container with seed data
+- Runs pytest with the following characteristics:
+  - Generates XML test reports
+  - Stops on first test failure
+  - Captures and reports test results
+- Ensures clean environment by tearing down containers after testing
+
+![Run Tests Stage - Success](/outputs/3_run_test.png)
+
+This screenshot shows a successful test run, demonstrating that all tests passed. The green indicators and test report confirm the application's functionality and code quality.
+
+![Run Tests Stage - Failure](/outputs/test_failure.png)
+
+This screenshot illustrates a test failure scenario, highlighting the importance of comprehensive testing. When tests fail, the Jenkins pipeline provides detailed error messages and stack traces to help developers quickly identify and resolve issues.
+
+
+#### 4. Build Docker Image
+- Builds a Docker image for the Flask application
+- Tags the image with the current build number
+
+![Build Docker Image Stage](/outputs/4_build_docker.png)
+
+This screenshot captures the Docker image build stage, where a Docker image is created for the Flask application. The build process compiles the application, installs dependencies, and packages the entire application into a portable, reproducible container.
+
+
+#### 5. Test Docker Credentials
+- Validates Docker Hub credentials
+- Ensures secure authentication for image push and pull operations
+
+![Test Docker Credentials Stage](/outputs/5_test_docker.png)
+
+This screenshot demonstrates the Docker credentials testing stage, which validates the Docker Hub authentication credentials. This critical security step ensures secure and authorized access to Docker Hub for pushing and pulling container images.
+
+
+#### 6. Push Docker Image
+- Pushes the built Docker image to Docker Hub
+- Uses secure credential management
+
+![Push Docker Image Stage](/outputs/6_push_docker.png)
+
+This screenshot illustrates the Push Docker Image stage, where the newly built Docker image is securely uploaded to Docker Hub. This step ensures that the latest version of the application is available for deployment and can be easily pulled by other systems or team members.
+
+![Push Docker Image to Docker Hub](/outputs/docker_hub_update.png)
+
+This screenshot illustrates the Docker Hub update process, showing how the Docker image is published to the Docker Hub repository. This step is crucial for version control, sharing, and enabling easy deployment across different environments.
+
+
+
+#### 7. Deploy to EC2
+- Connects to a predefined EC2 instance via SSH
+- Creates/checks Docker network and volumes
+- Ensures MongoDB container is running
+- Pulls the latest Docker image
+- Stops and removes any existing container
+- Starts a new container with:
+  - Proper network configuration
+  - Environment variables
+  - Port mapping
+
+![Deploy to EC2 Stage](/outputs/7_deploy_ec2.png)
+
+This screenshot depicts the Deploy to EC2 stage, which demonstrates the automated deployment process to the target EC2 instance. The image shows the successful SSH connection, Docker image pull, and container startup, highlighting the seamless and reproducible deployment workflow.
+
+
+### Notification System
+- Sends email notifications for:
+  - Build failures
+  - Successful deployments
+
+### Post-Deployment Actions
+- Generates a detailed deployment success summary
+- Includes information about:
+  - Docker images
+  - Running containers
+  - Disk space
+  - Docker system info
+- Performs cleanup by removing older Docker images
+
+#### Clean the Docker images
+
+![Clean Docker Images Stage](/outputs/8_post_clean_image.png)
+
+This screenshot shows the Docker image cleanup stage, which is an essential part of maintaining a clean and efficient Docker environment. After successful deployment, the pipeline removes older Docker images to prevent disk space accumulation and keep the system optimized.
+
+
+### Environment Variables
+Key environment variables used in the pipeline:
+- `GITREPO`: Source code repository
+- `EC2_HOST`: Deployment target EC2 instance
+- `DOCKER_IMAGE`: Docker image name
+- `CONTAINER_NAME`: Name of the deployed container
+- `ALERT_EMAIL`: Notification email address
+
+### Prerequisites
+- Jenkins
+- Docker
+- Docker Compose
+- EC2 Instance
+- Docker Hub Account
+
+### Deployment Workflow
+1. Code is pushed to the main branch
+2. Jenkins automatically triggers the pipeline
+3. Tests are run
+4. Docker image is built and pushed
+5. Application is deployed to EC2
+6. Notifications are sent
+
+## Local Development
+Refer to the `docker-compose.yml` for local setup instructions.
+
+## Contributing
+Please read the contributing guidelines before submitting pull requests.
