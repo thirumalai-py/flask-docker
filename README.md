@@ -173,10 +173,15 @@ This screenshot demonstrates the Docker credentials testing stage, which validat
 - Pushes the built Docker image to Docker Hub
 - Uses secure credential management
 
-#### Output
+#### Output - Stage
 This screenshot illustrates the Push Docker Image stage, where the newly built Docker image is securely uploaded to Docker Hub. This step ensures that the latest version of the application is available for deployment and can be easily pulled by other systems or team members.
 
 ![Push Docker Image Stage](/outputs/6_push_docker.png)
+
+#### Output - Docker Hub Image with Tag of the release
+
+![Docker Hub Image with Tag of the release](/outputs/docker_hub_update.png)
+
 
 #### 7. Deploy to EC2
 - Connects to a predefined EC2 instance via SSH
