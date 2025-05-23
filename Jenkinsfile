@@ -230,9 +230,10 @@ pipeline {
                     # List and sort images by creation time, keeping only the two most recent builds
                     docker images --format "{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}" | \
                     grep "${DOCKER_IMAGE}" | \
-                    sort -k3 -r | \
+                    sort -k3,4r | \
                     awk 'NR>2 {print $2}' | \
                     xargs -r docker rmi || true
+
                     
                     echo "===== Deployment Success Cleanup Complete ====="
                 '''
