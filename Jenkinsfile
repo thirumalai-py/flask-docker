@@ -6,12 +6,13 @@ pipeline {
         GIT_BRANCH = "main"
         EC2_SSH = "thiru-ec2"
         EC2_USER = "ubuntu"
-        EC2_HOST = "65.0.179.73"
+        EC2_HOST = "13.201.229.37"
         CONTAINER_NAME = "thiru-flask"
         DOCKER_IMAGE = "thirumalaipy/flask"
         DOCKER_CREDENTIALS_ID = "thiru-docker-cred"
         DOCKER_REGISTRY = "https://index.docker.io/v1"
         DOCKER_NETWORK = "app-network"
+        ALERT_EMAIL = "thirumalai.py@gmail.com"
     }
 
     stages {
@@ -161,10 +162,19 @@ pipeline {
      post {
         failure {
             echo 'Build or test failed. Sending notifications...'
+            emailext(
+                subject: "Flask Application Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """The Jenkins job '${env.JOB_NAME}' has failed. Check build logs at: ${env.BUILD_URL}""",
+                to: "${ALERT_EMAIL}"
+            )
         }
         success {
             echo 'Build and deployment passed successfully!'
-            
+            emailext(
+                subject: "Flask Application Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """The Jenkins job '${env.JOB_NAME}' has passed. Check build logs at: ${env.BUILD_URL}""",
+                to: "${ALERT_EMAIL}"
+            )
             script {
                 sh '''
                     echo "===== Deployment Success Summary ====="
