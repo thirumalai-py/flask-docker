@@ -3,9 +3,9 @@
 ## Project Setup
 
 ### Prerequisites
-- Python 3.8+
-- MongoDB
-- pip
+- Docker
+- Docker Compose
+- Git
 
 ### Installation Steps
 
@@ -15,37 +15,32 @@ git clone <your-repo-url>
 cd flask-docker
 ```
 
-2. Create a virtual environment
+2. Environment Configuration
+- No manual `.env` file is required
+- Environment variables are managed through Docker Compose
+- Key configurations are set in `docker-compose.yml`
+
+3. Build and Start the Application
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+# Build and start all services
+docker-compose up --build
+
+# Or run in detached mode
+docker-compose up -d --build
 ```
 
-3. Install dependencies
+4. Accessing the Application
+- Application runs on `http://localhost:8000`
+- Swagger UI available at `http://localhost:8000/swagger`
+
+### Running Tests
+
 ```bash
-pip install -r requirements.txt
-```
+# Run all tests
+docker-compose run --rm test
 
-4. Set up MongoDB
-- Ensure you have a MongoDB instance running
-- Set the `MONGO_URI` environment variable with your MongoDB connection string
-
-5. Set Environment Variables
-Create a `.env` file with the following content:
-```
-MONGO_URI=mongodb+srv://<username>:<password>@<cluster-url>/
-JWT_SECRET_KEY=your-very-secret-key-that-should-be-long-and-random
-FLASK_ENV=development
-```
-
-6. Run Database Migrations
-```bash
-flask db upgrade
-```
-
-7. Run the Application
-```bash
-python app.py
+# Run specific test files
+docker-compose run --rm test pytest tests/test_auth.py
 ```
 
 ### API Endpoints
@@ -61,32 +56,24 @@ python app.py
 - Use JWT token in Authorization header for protected routes
 - Token format: `Authorization: Bearer <your_token>`
 
-### Testing
-- Use tools like Postman or curl to test the API endpoints
-- Ensure you have a valid JWT token for protected routes
+### Local Development Workflow
+1. Make code changes
+2. Rebuild containers: `docker-compose up --build`
+3. Run tests: `docker-compose run --rm test`
+4. Access application at `http://localhost:8000`
 
-### MongoDB Configuration
-- The application uses PyMongo for MongoDB interactions
-- Connection details are managed through environment variables
-- Supports both local and cloud MongoDB instances
+### Docker Services
+- `web`: Main Flask application
+- `mongo-db`: MongoDB database
+- `test`: Container for running tests
 
-## Running Tests
-
-### Prerequisites
-- Python 3.8+
-- MongoDB
-- pip
-
-### Setup
-1. Create a virtual environment
+### Stopping the Application
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+# Stop and remove containers
+docker-compose down
 
-2. Install dependencies
-```bash
-pip install -r requirements.txt
+# Stop and remove containers with volumes
+docker-compose down -v
 ```
 
 ### Running Tests
