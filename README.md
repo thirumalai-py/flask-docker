@@ -128,18 +128,18 @@ This project implements a comprehensive Continuous Integration and Continuous De
 #### 1. Get Build Number
 - Captures and logs the unique build number for tracking and identification
 
-![Get Build Number Stage](/outputs/1_get_build_no.png)
-
+#### Output
 This screenshot illustrates the first stage of the Jenkins pipeline, which captures and logs the unique build number. The build number serves as a critical identifier for tracking each specific build and deployment iteration.
 
+![Get Build Number Stage](/outputs/1_get_build_no.png)
 
 #### 2. Checkout Code
 - Pulls the latest code from the main branch of the GitHub repository
 
-![Checkout Code Stage](/outputs/2_checkout_code.png)
-
+#### Output
 This screenshot demonstrates the Checkout Code stage, where Jenkins pulls the latest code from the main branch of the GitHub repository. This ensures that the most recent version of the codebase is used for building, testing, and deployment.
 
+![Checkout Code Stage](/outputs/2_checkout_code.png)
 
 #### 3. Run Tests
 - Sets up a MongoDB container with seed data
@@ -149,46 +149,47 @@ This screenshot demonstrates the Checkout Code stage, where Jenkins pulls the la
   - Captures and reports test results
 - Ensures clean environment by tearing down containers after testing
 
-![Run Tests Stage - Success](/outputs/3_run_test.png)
-
+#### Output - Successful Test
 This screenshot shows a successful test run, demonstrating that all tests passed. The green indicators and test report confirm the application's functionality and code quality.
 
-![Run Tests Stage - Failure](/outputs/test_failure.png)
+![Run Tests Stage - Success](/outputs/3_run_test.png)
 
+#### Output - Successful Test Report
+
+![Test Results Report](/outputs/test_results.png)
+
+
+#### Output - Failed Tests
 This screenshot illustrates a test failure scenario, highlighting the importance of comprehensive testing. When tests fail, the Jenkins pipeline provides detailed error messages and stack traces to help developers quickly identify and resolve issues.
 
+![Run Tests Stage - Failure](/outputs/test_failure.png)
 
 #### 4. Build Docker Image
 - Builds a Docker image for the Flask application
 - Tags the image with the current build number
 
-![Build Docker Image Stage](/outputs/4_build_docker.png)
-
+#### Output
 This screenshot captures the Docker image build stage, where a Docker image is created for the Flask application. The build process compiles the application, installs dependencies, and packages the entire application into a portable, reproducible container.
 
+![Build Docker Image Stage](/outputs/4_build_docker.png)
 
 #### 5. Test Docker Credentials
 - Validates Docker Hub credentials
 - Ensures secure authentication for image push and pull operations
 
-![Test Docker Credentials Stage](/outputs/5_test_docker.png)
-
+#### Output
 This screenshot demonstrates the Docker credentials testing stage, which validates the Docker Hub authentication credentials. This critical security step ensures secure and authorized access to Docker Hub for pushing and pulling container images.
 
+![Test Docker Credentials Stage](/outputs/5_test_docker.png)
 
 #### 6. Push Docker Image
 - Pushes the built Docker image to Docker Hub
 - Uses secure credential management
 
-![Push Docker Image Stage](/outputs/6_push_docker.png)
-
+#### Output
 This screenshot illustrates the Push Docker Image stage, where the newly built Docker image is securely uploaded to Docker Hub. This step ensures that the latest version of the application is available for deployment and can be easily pulled by other systems or team members.
 
-![Push Docker Image to Docker Hub](/outputs/docker_hub_update.png)
-
-This screenshot illustrates the Docker Hub update process, showing how the Docker image is published to the Docker Hub repository. This step is crucial for version control, sharing, and enabling easy deployment across different environments.
-
-
+![Push Docker Image Stage](/outputs/6_push_docker.png)
 
 #### 7. Deploy to EC2
 - Connects to a predefined EC2 instance via SSH
@@ -201,10 +202,10 @@ This screenshot illustrates the Docker Hub update process, showing how the Docke
   - Environment variables
   - Port mapping
 
-![Deploy to EC2 Stage](/outputs/7_deploy_ec2.png)
-
+#### Output
 This screenshot depicts the Deploy to EC2 stage, which demonstrates the automated deployment process to the target EC2 instance. The image shows the successful SSH connection, Docker image pull, and container startup, highlighting the seamless and reproducible deployment workflow.
 
+![Deploy to EC2 Stage](/outputs/7_deploy_ec2.png)
 
 ### Notification System
 - Sends email notifications for:
@@ -220,12 +221,29 @@ This screenshot depicts the Deploy to EC2 stage, which demonstrates the automate
   - Docker system info
 - Performs cleanup by removing older Docker images
 
-#### Clean the Docker images
-
-![Clean Docker Images Stage](/outputs/8_post_clean_image.png)
+#### Output - Clean the Docker images
 
 This screenshot shows the Docker image cleanup stage, which is an essential part of maintaining a clean and efficient Docker environment. After successful deployment, the pipeline removes older Docker images to prevent disk space accumulation and keep the system optimized.
 
+![Clean Docker Images Stage](/outputs/8_post_clean_image.png)
+
+#### Output - Send Email
+
+This screenshot illustrates the email notification sent after a successful deployment. The email provides a comprehensive summary of the build and deployment process, including:
+
+- Job Name
+- Build Number
+- Git Branch
+- Repository URL
+- Docker Image Details
+- Deployment Target (EC2 Host)
+- Deployment Timestamp
+
+The email uses a clean, HTML-formatted layout with color-coded status indicators (green checkmark ✅) to quickly communicate the successful deployment. It includes a direct link to the full build logs, allowing team members to easily access detailed information about the deployment.
+
+This automated notification system ensures that all stakeholders are immediately informed about the deployment status, promoting transparency and quick communication within the development team.
+
+![Send Email Notification](/outputs/email_success.png)
 
 ### Environment Variables
 Key environment variables used in the pipeline:
